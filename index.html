@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>AgroWeather</title>
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            padding: 30px;
+
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+
+            transition: 0.5s ease;
+        }
+        .container {
+            background: rgba(255,255,255,0.9);
+            padding: 20px;
+            border-radius: 12px;
+            width: 350px;
+            margin: auto;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+        }
+
+        input {
+            padding: 10px;
+            width: 80%;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background: green;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .result {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .recommend {
+            margin-top: 10px;
+            padding: 10px;
+            background: #dcedc8;
+            border-radius: 8px;
+        }
+
+        #map {
+            height: 300px;
+            width: 100%;
+            margin-top: 15px;
+            border-radius: 10px;
+        }
+    </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h2>🌾 AgroWeather</h2>
+    <p>Melihat Cuaca untuk Pertanian</p>
+    <p>By Faiz Jati</p>
+
+    <input type="text" id="city" placeholder="Masukkan kota/desa">
+    <br>
+    <button onclick="getWeather()">Cek Cuaca</button>
+
+    <div class="result" id="result"></div>
+    <div id="map"></div>
+</div>
+
+<script>
+const apiKey = "5a6c2e99bde44324a397397bdf8f0d8e"; 
+
+let map;
+let marker;
+function getWeather() {
+    let city = document.getElementById("city").value;
+    let url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=id`;
+
+    fetch(url)
+        .then(response => response.json())
+.then(data => {
+
+    if (data.cod != 200) {
+        document.getElementById("result").innerHTML = "Kota tidak ditemukan!";
+        return;
+    }
+
+let kondisi = data.weather[0].main.toLowerCase();
+console.log("KOTA:", city);
+console.log("STATUS:", data.weather[0].main);
+
+console.log("Kondisi:", kondisi);
+console.log("Data lengkap:", data.weather[0]);
+
+    if (kondisi.includes("rain")) {
+        document.body.style.backgroundImage = "url('hujan.jpeg')";
+    }
+    else if (kondisi.includes("cloud")) {
+        document.body.style.backgroundImage = "url('mendung.jpeg')";
+    }
+    else if (kondisi.includes("clear")) {
+        document.body.style.backgroundImage = "url('cerah.jpeg')";
+    }
+    else {
+        document.body.style.backgroundImage = "url('cerah.jpeg')";
+    }
+
+    let icon = "";
+
+    if (kondisi.includes("rain")) {
+        icon = "🌧️";
+    } else if (kondisi.includes("cloud")) {
+        icon = "☁️";
+    } else if (kondisi.includes("clear")) {
+        icon = "☀️";
+    } else {
+        icon = "🌤️";
+    }
+
+    let weather = `
+        <h3>📍 ${data.name}</h3>
+        <p>🌡️ Suhu: ${data.main.temp} °C</p>
+        <p>💧 Kelembapan: ${data.main.humidity}%</p>
+        <p>☁️ Kondisi: <span>${icon}</span> ${data.weather[0].description}</p>
+    `;
+
+    let rekomendasi = "";
+
+    if (kondisi.includes("rain")) {
+        rekomendasi = "⚠️ Hujan terdeteksi. Tidak disarankan aktivitas pertanian di luar.";
+    } else if (data.main.temp > 30) {
+        rekomendasi = "🌞 Cuaca panas. Cocok untuk panen pagi atau penyiraman.";
+    } else if (data.main.temp >= 20 && data.main.temp <= 30) {
+        rekomendasi = "🌾 Kondisi ideal untuk menanam atau bekerja di ladang.";
+    } else {
+        rekomendasi = "❄️ Cuaca dingin. Perhatikan kondisi tanaman.";
+    }
+
+    document.getElementById("result").innerHTML = `
+        ${weather}
+        <div class="recommend">
+            <b>🌱 Rekomendasi Pertanian:</b>
+            <p>${rekomendasi}</p>
+        </div>
+    `;
+    let lat = data.coord.lat;
+    let lon = data.coord.lon;
+
+    if (map) {
+        map.remove();
+    }
+
+    map = L.map('map').setView([lat, lon], 10);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    marker = L.marker([lat, lon])
+        .addTo(map)
+        .bindPopup(`📍 ${data.name}`)
+        .openPopup();
+})
+.catch(error => {
+    console.error(error);
+    document.getElementById("result").innerHTML =
+        "Error: " + error.message;
+});
+}
+</script>
+
+</body>
+</html>
